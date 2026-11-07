@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 const COLORS = {sleep:'var(--sleep)',high:'var(--high)',up:'var(--up)',steady:'var(--steady)',down:'var(--down)',low:'var(--low)'};
 const KEY = 'mood-sleep-graph-v2';
-let events = [], healthy = true, selected = null, descending = true;
+let events = [], healthy = true, selected = null;
 const now = new Date(); let month = new Date(now.getFullYear(),now.getMonth(),1);
 function notice(message) { $('notice').textContent=message; $('notice').hidden=!message; }
 try { const raw=localStorage.getItem(KEY); if(raw) events=validateEvents(JSON.parse(raw)); }
@@ -36,7 +36,7 @@ function render() {
  }
  $('timeline').replaceChildren();
  const sorted=[...events].sort((a,b)=>a.at.localeCompare(b.at)||a.id.localeCompare(b.id));
- const items=descending?[...sorted].reverse():sorted;
+ const items=[...sorted].reverse();
  for(const e of items) {
   const date=new Date(e.at), button=el('button','entry'), icon=el('span','entry-icon',e.type==='bed'?'☾':'☀'), body=el('div','entry-main');icon.setAttribute('aria-hidden','true');
   body.append(el('strong','',`${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${e.at.slice(11)} ${e.type==='bed'?'就寝':'起床'}`));
@@ -60,7 +60,7 @@ $('form').onsubmit=e=>{e.preventDefault();const record={id:selected||crypto.rand
 $('delete').onclick=()=>{if(confirm('この記録を削除しますか？')&&persist(events.filter(e=>e.id!==selected))){render();$('editor').close();}};
 $('prev').onclick=()=>{month.setMonth(month.getMonth()-1);render();};$('next').onclick=()=>{month.setMonth(month.getMonth()+1);render();};$('today').onclick=()=>{const d=new Date();month=new Date(d.getFullYear(),d.getMonth(),1);render();};
 function view(name) { for(const v of ['graph','timeline']) { $(`${v}-view`).hidden=v!==name;$(`${v}-tab`).toggleAttribute('aria-current',v===name);if(v===name)$(`${v}-tab`).setAttribute('aria-current','page'); } }
-$('graph-tab').onclick=()=>view('graph');$('timeline-tab').onclick=()=>view('timeline');$('sort').onclick=()=>{descending=!descending;$('sort').textContent=descending?'新しい順 ↓':'古い順 ↑';render();};
+$('graph-tab').onclick=()=>view('graph');$('timeline-tab').onclick=()=>view('timeline');
 $('export').onclick=()=>{
  if(!healthy){notice('保存データを読み込めていないためエクスポートできません。');return;}
  const url=URL.createObjectURL(new Blob([JSON.stringify({version:2,events},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`躁鬱睡眠グラフ-${dayKey(new Date())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
