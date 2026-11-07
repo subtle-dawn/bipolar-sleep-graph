@@ -19,7 +19,7 @@ for(const [key,label] of Object.entries({sleep:'睡眠',...MOODS})) {
  const item=el('span','',label), swatch=el('i','swatch'); swatch.style.setProperty('--color',COLORS[key]); item.prepend(swatch); $('legend').append(item);
 }
 for(const [key,label] of Object.entries(MOODS)) {
- const item=el('label','',label), radio=document.createElement('input'); radio.type='radio';radio.name='mood';radio.value=key;radio.checked=key==='steady';item.style.setProperty('--color',COLORS[key]);item.prepend(radio);$('moods').append(item);
+ const item=el('label',key,label), radio=document.createElement('input'); radio.type='radio';radio.name='mood';radio.value=key;radio.checked=key==='steady';item.style.setProperty('--color',COLORS[key]);item.prepend(radio);$('moods').append(item);
 }
 function render() {
  $('month-title').textContent=`${month.getFullYear()}年 ${month.getMonth()+1}月`; $('rows').replaceChildren();
@@ -38,7 +38,7 @@ function render() {
  const sorted=[...events].sort((a,b)=>a.at.localeCompare(b.at)||a.id.localeCompare(b.id));
  const items=[...sorted].reverse();
  for(const e of items) {
-  const date=new Date(e.at), button=el('button','entry'), icon=el('span','entry-icon',e.type==='bed'?'☾':'☀'), body=el('div','entry-main');icon.setAttribute('aria-hidden','true');
+  const date=new Date(e.at), button=el('button','entry'), icon=el('span','entry-icon',e.type==='bed'?'🌙':'☀️'), body=el('div','entry-main');icon.setAttribute('aria-hidden','true');
   body.append(el('strong','',`${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${e.at.slice(11)} ${e.type==='bed'?'就寝':'起床'}`));
   const meta=el('div','entry-meta');
   const i=sorted.indexOf(e),prev=sorted[i-1]; if(prev&&prev.type!==e.type&&prev.at!==e.at) meta.append(el('span','',`${e.type==='bed'?'覚醒':'睡眠'} ${hours((date-new Date(prev.at))/3600000)}`));
