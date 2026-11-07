@@ -17,3 +17,9 @@ test('旧形式の午前就寝は翌日に移し、コメントは就寝のみ',
  const nap=importData({version:1,records:{'2026-11-01':{wake:'06:00',bed:'',napStart:'13:00',napEnd:'14:00',mood:'steady',note:'昼寝'}}});
  assert.equal(nap.find(e=>e.id.endsWith('-napStart')).note,'昼寝');
 });
+test('日跨ぎ睡眠の表示用合計時間は帯の分割後も保持する',()=>{
+ const data=[e('1','bed','2026-11-01T22:00'),e('2','wake','2026-11-02T06:00')];
+ for(const day of ['2026-11-01','2026-11-02'])assert.equal(segmentsForDay(data,day)[0].totalHours,8);
+ const long=[e('1','bed','2026-10-31T22:00'),e('2','wake','2026-11-02T06:00')];
+ for(const day of ['2026-10-31','2026-11-01','2026-11-02'])assert.equal(segmentsForDay(long,day)[0].totalHours,32);
+});

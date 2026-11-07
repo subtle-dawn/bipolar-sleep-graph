@@ -49,7 +49,7 @@ function segmentsForDay(events, day) {
   return intervals(events).filter(x=>x.start<end && x.end>start).map(x=>{
     const a = new Date(Math.max(+x.start,+start)), b = new Date(Math.min(+x.end,+end));
     const minute = d => d.getHours()*60+d.getMinutes();
-    return {...x,left:minute(a)/1440*100,width:((+b===+end?1440:minute(b))-minute(a))/1440*100,hours:(b-a)/3600000};
+    return {...x,left:minute(a)/1440*100,width:((+b===+end?1440:minute(b))-minute(a))/1440*100,hours:(b-a)/3600000,totalHours:(x.end-x.start)/3600000};
   });
 }
 if (typeof module !== 'undefined') module.exports={MOODS,localTime,validTime,validateEvents,importData,intervals,segmentsForDay};

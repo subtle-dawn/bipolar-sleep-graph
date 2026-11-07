@@ -29,7 +29,7 @@ function render() {
   const label=el('button','day-label',`${month.getMonth()+1}/${day}`);label.append(el('small','',['日','月','火','水','木','金','土'][date.getDay()]));label.setAttribute('aria-label',`${key} の記録を追加`);label.onclick=()=>openEditor(null,`${key}T22:00`);
   const track=el('div','track');
   for(const s of segmentsForDay(events,key)) {
-   const text=`${hours(s.hours)}${s.note?' · '+s.note:''}`, bar=el('button',`segment ${s.kind}`,text);bar.style.left=`${s.left}%`;bar.style.width=`${s.width}%`;bar.style.setProperty('--color',COLORS[s.kind]);
+   const text=`${hours(s.kind==='sleep'?s.totalHours:s.hours)}${s.note?' · '+s.note:''}`, bar=el('button',`segment ${s.kind}`,text);bar.style.left=`${s.left}%`;bar.style.width=`${s.width}%`;bar.style.setProperty('--color',COLORS[s.kind]);
    bar.title=`${key} ${s.kind==='sleep'?'睡眠':MOODS[s.kind]} ${text}`;bar.setAttribute('aria-label',`${bar.title}、記録を編集`);bar.onclick=()=>openEditor(events.find(e=>e.id===s.id));track.append(bar);
   }
   row.append(label,track);$('rows').append(row);
