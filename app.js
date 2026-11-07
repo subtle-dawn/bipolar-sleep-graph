@@ -40,9 +40,16 @@ function render() {
  for(const e of items) {
   const date=new Date(e.at), button=el('button','entry'), icon=el('span','entry-icon',e.type==='bed'?'☾':'☀'), body=el('div','entry-main');icon.setAttribute('aria-hidden','true');
   body.append(el('strong','',`${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${e.at.slice(11)} ${e.type==='bed'?'就寝':'起床'}`));
-  const meta=el('div','entry-meta'); if(e.type==='bed') { const badge=el('span','badge',MOODS[e.mood]);badge.style.setProperty('--color',COLORS[e.mood]);meta.append(badge); }
+  const meta=el('div','entry-meta');
   const i=sorted.indexOf(e),prev=sorted[i-1]; if(prev&&prev.type!==e.type&&prev.at!==e.at) meta.append(el('span','',`${e.type==='bed'?'覚醒':'睡眠'} ${hours((date-new Date(prev.at))/3600000)}`));
-  body.append(meta);if(e.note)body.append(el('p','',e.note));button.append(icon,body);button.onclick=()=>openEditor(e);$('timeline').append(button);
+  body.append(meta);
+  if(e.type==='bed'||e.note) {
+   const comment=el('p','entry-comment');
+   if(e.type==='bed') {const badge=el('span','badge',MOODS[e.mood]);badge.style.setProperty('--color',COLORS[e.mood]);comment.append(badge);}
+   if(e.note)comment.append(document.createTextNode(e.note));
+   body.append(comment);
+  }
+  button.append(icon,body);button.onclick=()=>openEditor(e);$('timeline').append(button);
  }
  if(!items.length) { const empty=el('div','empty','まだ記録がありません。\n起床・就寝から、日々のリズムを記録しましょう。');const add=el('button','primary','最初の記録を追加');add.onclick=()=>openEditor();empty.append(add);$('timeline').append(empty); }
 }
