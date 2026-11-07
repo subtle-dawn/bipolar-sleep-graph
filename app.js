@@ -29,6 +29,7 @@ for(const [key,label] of Object.entries(MOODS)) {
  const item=el('label',key,label), radio=document.createElement('input'); radio.type='radio';radio.name='mood';radio.value=key;radio.checked=key==='steady';item.style.setProperty('--color',COLORS[key]);item.prepend(radio);$('moods').append(item);
 }
 function render() {
+ renderCalendar();
  $('month-title').textContent=`${month.getFullYear()}年 ${month.getMonth()+1}月`; $('rows').replaceChildren();
  const days=new Date(month.getFullYear(),month.getMonth()+1,0).getDate();
  for(let day=1;day<=days;day++) {
@@ -74,9 +75,9 @@ function render() {
  if(!items.length) { const empty=el('div','empty','まだ記録がありません。\n起床・就寝から、日々のリズムを記録しましょう。');const add=el('button','primary','最初の記録を追加');add.onclick=()=>openEditor();empty.append(add);$('timeline').append(empty); }
 }
 function updateType() { const wake=document.querySelector('[name=type]:checked').value==='wake'; $('mood-field').hidden=wake; $('note-field').hidden=false; }
-function openEditor(record=null, at=localTime(new Date())) {
- const latest=[...events].sort((a,b)=>b.at.localeCompare(a.at)||b.id.localeCompare(a.id))[0];
- const initialType=record?.type||(latest?.type==='bed'?'wake':'bed');
+function openEditor(record=null, at=localTime(new Date()), calendarDay=null) {
+ const latest=events.filter(e=>!calendarDay||e.at.slice(0,10)===calendarDay).sort((a,b)=>b.at.localeCompare(a.at)||b.id.localeCompare(a.id))[0];
+ const initialType=record?.type||(calendarDay?(latest?.type==='wake'?'bed':'wake'):(latest?.type==='bed'?'wake':'bed'));
  selected=record?.id||null;$('form').reset();$('form-error').textContent='';$('edit-title').textContent=record?(record.type==='bed'?'🌙就寝を編集':'☀️起床を編集'):'記録を追加';$('at').value=record?.at||at;
  document.querySelector('.type-options').hidden=!!record;
  document.querySelectorAll('[name=type]').forEach(r=>r.disabled=!!record);
@@ -90,11 +91,15 @@ $('form').onsubmit=e=>{e.preventDefault();const record={id:selected||crypto.rand
 };
 $('delete').onclick=()=>{if(confirm('この記録を削除しますか？')&&persist(events.filter(e=>e.id!==selected))){render();$('editor').close();}};
 $('prev').onclick=()=>{month.setMonth(month.getMonth()-1);render();};$('next').onclick=()=>{month.setMonth(month.getMonth()+1);render();};$('today').onclick=()=>{const d=new Date();month=new Date(d.getFullYear(),d.getMonth(),1);render();};
-function view(name) { for(const v of ['graph','timeline']) { $(`${v}-view`).hidden=v!==name;$(`${v}-tab`).toggleAttribute('aria-current',v===name);if(v===name)$(`${v}-tab`).setAttribute('aria-current','page'); } }
+function view(name) { for(const v of ['calendar','graph','timeline']) { $(`${v}-view`).hidden=v!==name;$(`${v}-tab`).toggleAttribute('aria-current',v===name);if(v===name)$(`${v}-tab`).setAttribute('aria-current','page'); } }
+$('calendar-tab').onclick=()=>view('calendar');
+$('calendar-prev').onclick=$('prev').onclick;
+$('calendar-next').onclick=$('next').onclick;
+$('calendar-today').onclick=$('today').onclick;
 $('graph-tab').onclick=()=>view('graph');$('timeline-tab').onclick=()=>view('timeline');
 $('export').onclick=()=>{
  if(!healthy){notice('保存データを読み込めていないためエクスポートできません。');return;}
- const url=URL.createObjectURL(new Blob([JSON.stringify({version:2,events},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`躁鬱睡眠グラフ-${dayKey(new Date())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ const url=URL.createObjectURL(new Blob([JSON.stringify({version:2,events},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`躁鬱睡眠記録-${dayKey(new Date())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 $('import').onclick=()=>$('file').click();$('file').onchange=async e=>{
  const file=e.target.files[0];if(!file)return;
@@ -125,4 +130,36 @@ $('clear-data').onclick=()=>{
  catch {$('settings-error').textContent='データをクリアできませんでした。';return;}
  events=[];settings={wake:'',bed:''};healthy=true;selected=null;notice('');render();$('settings-dialog').close();
 };
+function renderCalendar() {
+ $('calendar-month').textContent=`${month.getFullYear()}年 ${month.getMonth()+1}月`;
+ const start=new Date(month);start.setDate(1-month.getDay());
+ const count=Math.ceil((month.getDay()+new Date(month.getFullYear(),month.getMonth()+1,0).getDate())/7)*7;
+ const byDay=new Map();
+ for(const record of [...events].sort((a,b)=>a.at.localeCompare(b.at)||a.id.localeCompare(b.id))) {
+  const key=record.at.slice(0,10);
+  if(!byDay.has(key))byDay.set(key,[]);
+  byDay.get(key).push(record);
+ }
+ $('calendar').replaceChildren();
+ for(let i=0;i<count;i++) {
+  const date=new Date(start);date.setDate(start.getDate()+i);
+  const key=dayKey(date), today=key===dayKey(new Date());
+  const cell=el('div',`calendar-day${date.getMonth()!==month.getMonth()?' outside':''}${today?' today':''}`);
+  const add=el('button','date-number',String(date.getDate()));
+  add.type='button';add.setAttribute('aria-label',`${key} の記録を追加`);
+  if(today)add.setAttribute('aria-current','date');
+  add.onclick=()=>openEditor(null,`${key}T${localTime(new Date()).slice(11)}`,key);cell.append(add);
+  const records=byDay.get(key)||[];
+  for(const record of records) {
+   const button=el('button','calendar-record');button.type='button';
+   const label=`${record.type==='wake'?'☀️':'🌙'} ${record.at.slice(11)}`;
+   if(record.type==='bed')button.append(el('span',`calendar-mood ${record.mood}`,MOODS[record.mood]));
+   button.append(el('span',`calendar-time ${record.type}`,label));
+   if(record.note)button.append(el('span','calendar-note',record.note));
+   button.setAttribute('aria-label',`${key} ${label}${record.type==='bed'?' '+MOODS[record.mood]:''}${record.note?' '+record.note:''}、記録を編集`);
+   button.title=button.getAttribute('aria-label');button.onclick=()=>openEditor(record);cell.append(button);
+  }
+  $('calendar').append(cell);
+ }
+}
 render();

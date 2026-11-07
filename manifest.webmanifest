@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "躁鬱睡眠グラフ",
-  "short_name": "睡眠グラフ",
+  "name": "躁鬱睡眠記録",
+  "short_name": "睡眠記録",
   "lang": "ja",
   "start_url": "./index.html",
   "scope": "./",
