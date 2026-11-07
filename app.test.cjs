@@ -12,17 +12,43 @@ function setup() {
   setAttribute(key,value){this.attributes[key]=value;}
   getAttribute(key){return this.attributes[key];}
   toggleAttribute(key,on){if(on)this.attributes[key]='';else delete this.attributes[key];}
-  reset(){} showModal(){this.open=true;} close(){this.open=false;}
+  reset(){} click(){} showModal(){this.open=true;} close(){this.open=false;}
  }
  const nodes=new Map(),get=id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);};
+ const storage=new Map();
+ let exported;
  const context=vm.createContext({
   document:{getElementById:get,createElement:()=>new Element(),createTextNode:text=>({textContent:text}),querySelectorAll:()=>[],querySelector:get},
-  localStorage:{getItem:()=>null},console
+  localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},console,
+  confirm:()=>true,Blob,URL:{createObjectURL:blob=>{exported=blob;return 'blob:test';},revokeObjectURL(){}},setTimeout:()=>{}
  });
  vm.runInContext(fs.readFileSync('model.js','utf8'),context);
  vm.runInContext(fs.readFileSync('app.js','utf8'),context);
- return {get,run:code=>vm.runInContext(code,context)};
+ return {get,storage,exported:()=>exported,run:code=>vm.runInContext(code,context)};
 }
+
+test('JSON exports and restores targets, preserves legacy settings and rejects invalid targets',async()=>{
+ const app=setup(),{get,run,storage}=app;
+ run("settings={wake:'07:00',bed:'23:00'};");
+ get('export').onclick();
+ const data=JSON.parse(await app.exported().text());
+ assert.deepEqual(data.settings,{wake:'07:00',bed:'23:00'});
+ const load=async data=>get('file').onchange({target:{files:[{size:100,text:async()=>JSON.stringify(data)}],value:'backup.json'}});
+ run("settings={wake:'08:00',bed:'00:00'};");
+ await load(data);
+ assert.deepEqual(JSON.parse(storage.get('mood-sleep-graph-settings-v1')),data.settings);
+ assert.equal(run('settings.wake'),'07:00');
+ await load({version:2,events:[]});
+ assert.equal(run('settings.bed'),'23:00');
+ for(const settings of [{wake:'24:00',bed:'23:00'},{wake:'07:00'},null]) {
+  await load({version:2,events:[],settings});
+  assert.match(get('notice').textContent,/目標起床時刻/);
+  assert.equal(run('settings.wake'),'07:00');
+ }
+ await load({version:2,events:[],settings:{wake:'',bed:''}});
+ assert.equal(run('settings.wake'),'');
+ assert.equal(run('settings.bed'),'');
+});
 
 test('calendar shows every daily record chronologically with mood and notes',()=>{
  const {get,run}=setup();

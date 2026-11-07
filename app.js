@@ -14,9 +14,25 @@ const now = new Date(); let month = new Date(now.getFullYear(),now.getMonth(),1)
 function notice(message) { $('notice').textContent=message; $('notice').hidden=!message; }
 try { const raw=localStorage.getItem(KEY); if(raw) events=validateEvents(JSON.parse(raw)); }
 catch { healthy=false; notice('保存データを読み込めませんでした。上書きを防ぐため保存を停止しています。JSONをインポートして復元してください。'); }
-function persist(next,restore=false) {
+function persist(next,restore=false,nextSettings=null) {
   if(!healthy&&!restore) { $('form-error').textContent='保存データを読み込めていません。JSONから復元してください。'; return false; }
-  try { next=validateEvents(next); localStorage.setItem(KEY,JSON.stringify(next)); events=next; healthy=true; notice(''); return true; }
+  let previousSettings, settingsWritten=false;
+  try {
+   next=validateEvents(next);
+   if(nextSettings) {
+    previousSettings=localStorage.getItem(SETTINGS_KEY);
+    localStorage.setItem(SETTINGS_KEY,JSON.stringify(nextSettings));settingsWritten=true;
+   }
+   try {localStorage.setItem(KEY,JSON.stringify(next));}
+   catch(error) {
+    if(settingsWritten) {
+     if(previousSettings===null)localStorage.removeItem(SETTINGS_KEY);
+     else localStorage.setItem(SETTINGS_KEY,previousSettings);
+    }
+    throw error;
+   }
+   events=next;if(nextSettings)settings=nextSettings;healthy=true;notice('');return true;
+  }
   catch(e) { $('form-error').textContent='保存できませんでした。保存設定・空き容量を確認してください。'; notice('保存できませんでした。保存設定・空き容量を確認してください。'); return false; }
 }
 function el(tag,cls,text) { const node=document.createElement(tag); node.className=cls; if(text!==undefined) node.textContent=text; return node; }
@@ -99,15 +115,20 @@ $('calendar-today').onclick=$('today').onclick;
 $('graph-tab').onclick=()=>view('graph');$('timeline-tab').onclick=()=>view('timeline');
 $('export').onclick=()=>{
  if(!healthy){notice('保存データを読み込めていないためエクスポートできません。');return;}
- const url=URL.createObjectURL(new Blob([JSON.stringify({version:2,events},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`躁鬱睡眠記録-${dayKey(new Date())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ const url=URL.createObjectURL(new Blob([JSON.stringify({version:2,events,settings},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`躁鬱睡眠記録-${dayKey(new Date())}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 $('import').onclick=()=>$('file').click();$('file').onchange=async e=>{
  const file=e.target.files[0];if(!file)return;
- try {if(file.size>5000000)throw Error('ファイルは5MB以下にしてください。');const incoming=importData(JSON.parse(await file.text()));
+ try {if(file.size>5000000)throw Error('ファイルは5MB以下にしてください。');const data=JSON.parse(await file.text()), incoming=importData(data);
+ let incomingSettings=null;
+ if(Object.hasOwn(data,'settings')) {
+  if(!data.settings || !validTarget(data.settings.wake) || !validTarget(data.settings.bed))throw Error('目標起床時刻・目標就寝時刻の形式を確認してください。');
+  incomingSettings={wake:data.settings.wake,bed:data.settings.bed};
+ }
  const merged=new Map(events.map(e=>[e.id,e]));for(const item of incoming)merged.set(item.id,item);
  const all=[...merged.values()];const times=new Set();for(const item of all){if(times.has(item.at))throw Error('同じ日時に複数の記録があります。JSON内の重複を解消してください。');times.add(item.at);}
- if(!confirm(`${incoming.length}件を取り込みます。同じIDの記録は上書きされます。よろしいですか？`))return;
- if(persist(all,true)){if(incoming.length){const d=new Date([...incoming].sort((a,b)=>b.at.localeCompare(a.at))[0].at);month=new Date(d.getFullYear(),d.getMonth(),1);}render();notice(`${incoming.length}件の記録を取り込みました。`);}
+ if(!confirm(`${incoming.length}件を取り込みます。同じIDの記録は上書きされます。${incomingSettings?'目標起床時刻・目標就寝時刻も上書きされます。':''}よろしいですか？`))return;
+ if(persist(all,true,incomingSettings)){if(incoming.length){const d=new Date([...incoming].sort((a,b)=>b.at.localeCompare(a.at))[0].at);month=new Date(d.getFullYear(),d.getMonth(),1);}render();notice(`${incoming.length}件の記録を取り込みました。`);}
  }catch(error){notice(`インポートできませんでした：${error.message}`);}finally{e.target.value='';}
 };
 $('settings').onclick=()=>{
