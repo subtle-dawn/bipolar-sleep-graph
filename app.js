@@ -55,8 +55,10 @@ function render() {
 }
 function updateType() { const wake=document.querySelector('[name=type]:checked').value==='wake'; $('mood-field').hidden=wake; $('note-field').hidden=wake; }
 function openEditor(record=null, at=localTime(new Date())) {
+ const latest=[...events].sort((a,b)=>b.at.localeCompare(a.at)||b.id.localeCompare(a.id))[0];
+ const initialType=record?.type||(latest?.type==='bed'?'wake':'bed');
  selected=record?.id||null;$('form').reset();$('form-error').textContent='';$('edit-title').textContent=record?'記録を編集':'記録を追加';$('at').value=record?.at||at;
- document.querySelector(`[name=type][value=${record?.type||'bed'}]`).checked=true;document.querySelector(`[name=mood][value=${record?.mood||'steady'}]`).checked=true;$('note').value=record?.note||'';$('delete').hidden=!record;updateType();$('editor').showModal();
+ document.querySelector(`[name=type][value=${initialType}]`).checked=true;document.querySelector(`[name=mood][value=${record?.mood||'steady'}]`).checked=true;$('note').value=record?.note||'';$('delete').hidden=!record;updateType();$('editor').showModal();
 }
 document.querySelectorAll('[name=type]').forEach(r=>r.onchange=updateType);
 $('add').onclick=()=>openEditor();$('close').onclick=()=>$('editor').close();
