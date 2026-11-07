@@ -23,3 +23,9 @@ test('日跨ぎ睡眠の表示用合計時間は帯の分割後も保持する',
  const long=[e('1','bed','2026-10-31T22:00'),e('2','wake','2026-11-02T06:00')];
  for(const day of ['2026-10-31','2026-11-01','2026-11-02'])assert.equal(segmentsForDay(long,day)[0].totalHours,32);
 });
+test('日跨ぎ覚醒は起床から就寝までの合計時間と気分を保持する',()=>{
+ const data=[e('1','wake','2026-11-01T10:00'),e('2','bed','2026-11-02T02:00','up','活動した')];
+ const first=segmentsForDay(data,'2026-11-01')[0],second=segmentsForDay(data,'2026-11-02')[0];
+ assert.equal(first.hours,14);assert.equal(second.hours,2);
+ for(const s of [first,second]){assert.equal(s.totalHours,16);assert.equal(s.kind,'up');assert.equal(s.note,'活動した');}
+});
