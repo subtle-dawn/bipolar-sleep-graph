@@ -66,6 +66,22 @@ test('navigation switches among calendar, graph and timeline',()=>{
  }
 });
 
+test('header addition defaults to wake and alternates from the latest record',()=>{
+ const {get,run}=setup();
+ for(const [records,expected] of [
+  [[], 'wake'],
+  [[{id:'1',type:'wake',at:'2026-11-02T07:00'}], 'bed'],
+  [[{id:'2',type:'bed',at:'2026-11-02T22:00'},{id:'1',type:'wake',at:'2026-11-02T07:00'}], 'wake']
+ ]) {
+  get('[name=type][value=wake]').checked=false;get('[name=type][value=bed]').checked=false;
+  run(`events=${JSON.stringify(records)};`);
+  get('add').onclick();
+  assert.equal(get('editor').open,true);
+  assert.equal(get(`[name=type][value=${expected}]`).checked,true);
+  assert.equal(get(`[name=type][value=${expected==='wake'?'bed':'wake'}]`).checked,false);
+ }
+});
+
 test('calendar addition uses only the latest record of the selected day',()=>{
  const {get,run}=setup();
  for(const [records,expected] of [

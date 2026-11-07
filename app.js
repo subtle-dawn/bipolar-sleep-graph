@@ -77,7 +77,7 @@ function render() {
 function updateType() { const wake=document.querySelector('[name=type]:checked').value==='wake'; $('mood-field').hidden=wake; $('note-field').hidden=false; }
 function openEditor(record=null, at=localTime(new Date()), calendarDay=null) {
  const latest=events.filter(e=>!calendarDay||e.at.slice(0,10)===calendarDay).sort((a,b)=>b.at.localeCompare(a.at)||b.id.localeCompare(a.id))[0];
- const initialType=record?.type||(calendarDay?(latest?.type==='wake'?'bed':'wake'):(latest?.type==='bed'?'wake':'bed'));
+ const initialType=record?.type||(latest?.type==='wake'?'bed':'wake');
  selected=record?.id||null;$('form').reset();$('form-error').textContent='';$('edit-title').textContent=record?(record.type==='bed'?'🌙就寝を編集':'☀️起床を編集'):'記録を追加';$('at').value=record?.at||at;
  document.querySelector('.type-options').hidden=!!record;
  document.querySelectorAll('[name=type]').forEach(r=>r.disabled=!!record);
