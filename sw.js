@@ -1,6 +1,6 @@
 'use strict';
 // Change VERSION whenever any cached file changes. Updates activate after all app tabs close.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const BASE = self.registration.scope;
 const PREFIX = `sleep-graph-${BASE}-`;
 const CACHE = `${PREFIX}${VERSION}`;

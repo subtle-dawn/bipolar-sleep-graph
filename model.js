@@ -24,7 +24,13 @@ function importData(data) {
     for (const [key,type] of [['wake','wake'],['bed','bed'],['napStart','bed'],['napEnd','wake']]) {
       if (r[key] === undefined || r[key] === '') continue;
       if (typeof r[key] !== 'string') throw Error('旧形式の時刻が不正です。');
-      events.push({id:`calendar-${day}-${key}`,type,at:`${day}T${r[key]}`,mood:r.mood || 'steady',note:r.note}); count++;
+      let at = `${day}T${r[key]}`;
+      if (!validTime(at)) throw Error('旧形式の日時が不正です。');
+      if (key === 'bed' && Number(r[key].slice(0,2)) < 12) {
+        const next = new Date(at); next.setDate(next.getDate()+1); at = localTime(next);
+      }
+      const commentTarget = r.bed ? 'bed' : 'napStart';
+      events.push({id:`calendar-${day}-${key}`,type,at,mood:r.mood || 'steady',note:key === commentTarget ? r.note : ''}); count++;
     }
     if (!count && (r.note || r.mood)) throw Error(`${day} は時刻がありません。カレンダーで時刻を入力してから再エクスポートしてください。`);
   }
