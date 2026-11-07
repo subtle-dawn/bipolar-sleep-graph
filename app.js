@@ -53,14 +53,14 @@ function render() {
  }
  if(!items.length) { const empty=el('div','empty','まだ記録がありません。\n起床・就寝から、日々のリズムを記録しましょう。');const add=el('button','primary','最初の記録を追加');add.onclick=()=>openEditor();empty.append(add);$('timeline').append(empty); }
 }
-function updateType() { $('mood-field').hidden=document.querySelector('[name=type]:checked').value==='wake'; }
+function updateType() { const wake=document.querySelector('[name=type]:checked').value==='wake'; $('mood-field').hidden=wake; $('note-field').hidden=wake; }
 function openEditor(record=null, at=localTime(new Date())) {
  selected=record?.id||null;$('form').reset();$('form-error').textContent='';$('edit-title').textContent=record?'記録を編集':'記録を追加';$('at').value=record?.at||at;
  document.querySelector(`[name=type][value=${record?.type||'bed'}]`).checked=true;document.querySelector(`[name=mood][value=${record?.mood||'steady'}]`).checked=true;$('note').value=record?.note||'';$('delete').hidden=!record;updateType();$('editor').showModal();
 }
 document.querySelectorAll('[name=type]').forEach(r=>r.onchange=updateType);
 $('add').onclick=()=>openEditor();$('close').onclick=()=>$('editor').close();
-$('form').onsubmit=e=>{e.preventDefault();const record={id:selected||crypto.randomUUID(),at:$('at').value,type:document.querySelector('[name=type]:checked').value,mood:document.querySelector('[name=mood]:checked').value,note:$('note').value.trim()};
+$('form').onsubmit=e=>{e.preventDefault();const record={id:selected||crypto.randomUUID(),at:$('at').value,type:document.querySelector('[name=type]:checked').value,mood:document.querySelector('[name=mood]:checked').value,note:document.querySelector('[name=type]:checked').value==='wake'?'':$('note').value.trim()};
  try { validateEvents([record]);if(events.some(e=>e.id!==record.id&&e.at===record.at))throw Error('同じ日時の記録があります。既存の記録を編集してください。'); }catch(error){$('form-error').textContent=error.message;return;}
  if(persist([...events.filter(e=>e.id!==selected),record])){month=new Date(new Date(record.at).getFullYear(),new Date(record.at).getMonth(),1);render();$('editor').close();}
 };
