@@ -1,6 +1,17 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');
 const {validateEvents,importData,segmentsForDay,intervals}=require('./model.js');
 const e=(id,type,at,mood='steady',note='')=>({id,type,at,mood,note});
+test('sleep segments use the wake note across midnight and preserve it through JSON',()=>{
+ const data=[e('1','bed','2026-11-01T22:00','steady','bed note'),e('2','wake','2026-11-02T06:00','steady','wake note'),e('3','bed','2026-11-02T22:00','up','next bed note')];
+ const restored=importData(JSON.parse(JSON.stringify({version:2,events:validateEvents(data)})));
+ for(const day of ['2026-11-01','2026-11-02']){
+  const sleep=segmentsForDay(restored,day).find(s=>s.kind==='sleep');
+  assert.equal(sleep.note,'wake note');assert.equal(sleep.totalHours,8);assert.equal(sleep.id,'2');
+ }
+ const awake=segmentsForDay(restored,'2026-11-02').find(s=>s.kind==='up');
+ assert.equal(awake.note,'next bed note');
+ assert.equal(intervals([data[0],{...data[1],note:''}])[0].note,'');
+});
 test('日付をまたぐ睡眠は各日の0〜24時に分割',()=>{const data=[e('1','bed','2026-11-01T22:00'),e('2','wake','2026-11-02T06:00')];const a=segmentsForDay(data,'2026-11-01')[0],b=segmentsForDay(data,'2026-11-02')[0];assert.equal(a.hours,2);assert.equal(a.left,22/24*100);assert.equal(b.hours,6);assert.equal(b.left,0);assert.equal(b.kind,'sleep');});
 test('覚醒区間は終端の就寝時の気分とコメント',()=>{const data=[e('1','wake','2026-11-02T06:00'),e('2','bed','2026-11-02T22:00','low','疲れた')];const s=segmentsForDay(data,'2026-11-02')[0];assert.equal(s.hours,16);assert.equal(s.kind,'low');assert.equal(s.note,'疲れた');assert.equal(s.id,'2');});
 test('連続した同種記録・片方のみは区間を推測しない',()=>{assert.equal(intervals([e('1','bed','2026-11-01T22:00')]).length,0);assert.equal(intervals([e('1','bed','2026-11-01T22:00'),e('2','bed','2026-11-02T22:00')]).length,0);});

@@ -41,7 +41,7 @@ function intervals(events) {
   return sorted.slice(0,-1).flatMap((e,i) => {
     const next = sorted[i+1];
     if (e.type === next.type || e.at === next.at) return [];
-    return [{start:new Date(e.at),end:new Date(next.at),kind:e.type === 'bed'?'sleep':next.mood,note:e.type === 'wake'?next.note:'',id:next.id}];
+    return [{start:new Date(e.at),end:new Date(next.at),kind:e.type === 'bed'?'sleep':next.mood,note:next.note,id:next.id}];
   });
 }
 function segmentsForDay(events, day) {
